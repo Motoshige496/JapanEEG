@@ -1,6 +1,6 @@
 # JapanEEG
 
-Open-Vocabulary Japanese Sentence Reading EEG-EMG Dataset from OpenNeuro ([ds007600](https://openneuro.org/datasets/ds007600)).
+Open-Vocabulary Japanese Sentence Reading EEG-EMG Dataset from OpenNeuro ([ds007602](https://openneuro.org/datasets/ds007602)).
 
 - **3 long-term participants** with 600+ hours of EEG recorded during overt Japanese speech production
 - **Open vocabulary** -- participants read sentences from novels, text-based TV games, and the JSUT corpus at natural speed, producing long-form speech
