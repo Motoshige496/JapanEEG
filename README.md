@@ -58,7 +58,7 @@ events = pd.read_csv(str(events_tsv), sep="\t")
 print(events.head())
 #    onset  duration      trial_type  sample            value
 # 0   20.0       5.0  speech_window   20480       ルーシーは伝統の
-# 1   25.0       5.0  speech_window   25600     スイッチをつけた
+# 1   25.0       5.0  speech_window   25600       スイッチをつけた
 
 # --- Plot raw EEG (first 10 seconds) ---
 raw.load_data()
