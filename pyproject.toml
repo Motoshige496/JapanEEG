@@ -1,0 +1,22 @@
+[project]
+name = "japaneeg"
+version = "0.1.0"
+description = "Japan EEG dataset from OpenNeuro (ds007600)"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "CC0-1.0"
+dependencies = [
+    "openneuro-py>=2024.2.0",
+    "mne>=1.7.0",
+    "pandas>=2.0.0",
+    "matplotlib>=3.8.0",
+    "mne-bids>=0.18.0",
+    "python-dotenv>=1.2.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/japaneeg"]
