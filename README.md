@@ -12,15 +12,20 @@ This repository provides
 
 1. **download** of the release (`japaneeg-download`), with checksum verification and extraction;
 2. **loading** of continuous runs and `ses-shuffled` segments with MNE-Python (`japaneeg.bids`);
-3. the **technical-validation analyses** of the paper (preprocessing, PSD, ERP and their statistics);
+3. the **technical-validation analyses** of the paper (preprocessing, PSD, ERP, facial muscle
+   activity, speech measures and their statistics);
 4. **exact redrawing of Figures 2–4** from the aggregate arrays behind the published figures
    (`aggregates/`, `scripts/redraw_figures.py`);
-5. an **approximate recomputation of Figures 3 and 4 from the released files**
-   (`scripts/reproduce_from_release.py`).
+5. a **recomputation of Figures 3 and 4 and of the numbers of the paper from the released files**
+   (`scripts/reproduce_from_release.py`, `scripts/release_statistics.py`, `scripts/paper_numbers.py`);
+6. a plot of **synchronized speech, aligned words and phones, EEG and EMG** around one utterance,
+   as in Figure 1e (`scripts/plot_synchronized_example.py`).
 
 Items 4 and 5 differ. The published figures were computed from the original continuous
 recordings. Part of the release is cut into segments for copyright reasons, so a recomputation
-from the released files can only approximate them (see [Reproducing the figures](#reproducing-the-figures)).
+of the EEG analyses from the released files approximates them (see
+[Reproducing the figures](#reproducing-the-figures) and
+[Reproducing the numbers of the paper](#reproducing-the-numbers-of-the-paper)).
 
 ## Installation
 
@@ -30,15 +35,16 @@ cd JapanEEG
 uv sync                 # or: pip install -e .
 ```
 
-Python 3.11 or later. The dependencies are pinned in `uv.lock`.
+Python 3.11 or later. The dependencies are pinned in `uv.lock`. The mora count of the
+articulation rate needs pyopenjtalk (`uv sync --extra speech`).
 
 ## Access and download
 
 1. Request access on Harvard Dataverse (https://doi.org/10.7910/DVN/5RM3OT) and accept the
    JapanEEG Data Use Agreement. After approval you receive a user name and password for the data
    server, valid for 30 days.
-2. Put them in a `.env` file in the repository folder (never commit it; `.env.example` shows the
-   format). The values below are placeholders:
+2. Put them in a `.env` file in the repository folder. The credentials are personal under the
+   Data Use Agreement, and `.env` is listed in `.gitignore`. The values below are placeholders:
 
    ```bash
    cp .env.example .env
@@ -121,16 +127,18 @@ Notes on the release (details in the dataset README):
 | `japaneeg.preprocessing` | notch (50 Hz harmonics), band-pass 2–120 Hz, resampling to 240 Hz; good-channel common average reference; z-score and robust z-score (median, 1.4826 × MAD); NLMS adaptive filter (step 0.1, regularisation 0.001, initial weights N(0, 0.5), seed 0) |
 | `japaneeg.erp` | onset selection (≥ 0.5 s silence), epochs −300 to 800 ms, baselines (overt −300 to −200 ms; covert and listening −200 to 0 ms), rejection at 3 × the median per-trial maximum, epoch normalisation, two-stage average; GFP peaks, post-onset RMS / baseline SD ratio, split-half reliability |
 | `japaneeg.psd` | Welch PSD (4-s Hann, 50 % overlap), median over runs and its standard error in dB, 60–118 Hz slope without 97–103 Hz |
-| `japaneeg.pipeline` | the ERP pipeline applied to released files |
+| `japaneeg.pipeline` | the ERP pipeline applied to released files, with and without the adaptive filter |
+| `japaneeg.emg` | 60–118 Hz slopes during speech and pauses, EEG–EMG coherence, each with the recording reference and the common average reference (CAR) |
+| `japaneeg.speech` | articulation rate from the released word and phone intervals (morae and phones per second), acoustic onset latency on the microphone envelope channel |
+| `japaneeg.tables` | event counts, event hours and recording hours of Tables 4 and 5 |
 
 ## Reproducing the figures
 
 ### Exact redrawing from the aggregate arrays
 
 `aggregates/` holds the arrays behind Figures 2–4: the grand-average ERPs of the nine ERP panels,
-the median PSDs over runs (raw and preprocessed) and the electrode layouts, with the counts and
-settings in JSON files and the SHA-256 of every file in `aggregates/manifest.json`. They contain
-no recordings, run lists or dates.
+the median PSDs over runs (raw and preprocessed) and the electrode layouts. The trial counts and
+analysis settings are in JSON files next to the arrays (format in `japaneeg.aggregates`).
 
 ```bash
 uv run python scripts/redraw_figures.py          # writes figures/fig2_psd.png, fig3_erp.png, fig4_topomap.png
@@ -156,6 +164,38 @@ required 0.5 s of preceding EEG within their segment. The correlations of the re
 grand averages with the published ones are written to `outputs/release_reproduction/comparison.tsv`.
 Processing all files takes several hours on a multi-core machine and caches about 20 GB of
 epochs; `--conditions` and `--max-files` select a smaller test.
+
+### Synchronized signals around one utterance (as Figure 1e)
+
+```bash
+uv run python scripts/plot_synchronized_example.py \
+    --edf data/JapanEEG/bids/sub-01/ses-20230829/eeg/<run>_eeg.edf --event 10 --out figures/fig1e_example.png
+```
+
+The plot shows the voice-masked speech with the aligned words and phones of the release, five
+scalp EEG channels and the facial EMG on one time line. Use a continuous overt-speech run.
+
+## Reproducing the numbers of the paper
+
+| Numbers in the paper | Command | From the released files |
+|---|---|---|
+| Ratio of post-onset RMS to baseline SD, GFP peak latencies | `scripts/redraw_figures.py` | exact (aggregates of the published figures) |
+| 60–118 Hz slopes of the median spectra | `scripts/redraw_figures.py` | exact (aggregates) |
+| Split-half reliability; ratio and GFP peaks of the recomputed ERPs | `scripts/reproduce_from_release.py`, then `scripts/release_statistics.py` | approximate |
+| ERPs with and without the adaptive filter (correlation, RMS change) | `scripts/reproduce_from_release.py --without-adaptive-filter`, then `scripts/release_statistics.py` | approximate |
+| Tables 4 and 5: events, event hours, recording hours, duration statistics | `scripts/paper_numbers.py tables` | event counts and durations exact; recording days from the continuous runs only |
+| Articulation rate in morae and phones per second | `scripts/paper_numbers.py articulation --morae` | exact |
+| Acoustic onset after the speech-event onset | `scripts/paper_numbers.py onset` | approximate (released 30-Hz microphone envelope) |
+| Slopes during speech and pauses, Wilcoxon signed-rank test, recording reference vs CAR | `scripts/paper_numbers.py speech-pause --subject 01` | approximate (per file) |
+| EEG–EMG coherence with the recording reference and CAR, chance level | `scripts/paper_numbers.py coherence --subject 01` | approximate (per file) |
+| Bad channels per run, events overlapping `BAD_high_amplitude` | `scripts/paper_numbers.py bad-channels` | overlap exact; bad channels of the continuous runs only |
+
+All commands except `redraw_figures.py` and `release_statistics.py` take
+`--bids-root data/JapanEEG/bids`, and all write TSV files under `outputs/`. The paper computed the
+speech and pause slopes and the coherence per run. The run of a `ses-shuffled` segment is not
+released, so the segments of one file are pooled, and the counts of the test differ from the
+paper. The speech measures use the released word and phone intervals, which come from forced
+alignment of the original audio.
 
 ## Tests
 

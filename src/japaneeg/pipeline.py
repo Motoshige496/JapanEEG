@@ -25,6 +25,7 @@ figures; :func:`compare` reports how closely.
 from __future__ import annotations
 
 import math
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -141,7 +142,8 @@ def process_file(
     mu: float = 0.1,
     eps: float = 1e-3,
     seed: int = 0,
-) -> NDArray[np.float64]:
+    without_adaptive_filter: bool = False,
+) -> NDArray[np.float64] | tuple[NDArray[np.float64], NDArray[np.float64]]:
     """Steps 1-4 of the module docstring for one file.
 
     Args:
@@ -152,9 +154,12 @@ def process_file(
         mu: NLMS step size.
         eps: NLMS regularisation.
         seed: Seed of the initial NLMS weights.
+        without_adaptive_filter: Also return the same epochs without the NLMS filter (same
+            pieces, standardisation and onsets), for the sensitivity check of the paper.
 
     Returns:
-        Baseline-corrected epochs ``(n_trials, n_ch, n_samples)`` in robust units (bad: NaN).
+        Baseline-corrected epochs ``(n_trials, n_ch, n_samples)`` in robust units (bad: NaN);
+        with ``without_adaptive_filter``, a pair (with, without the adaptive filter).
     """
     import mne
 
@@ -183,8 +188,9 @@ def process_file(
         ref_p.append(m)
         bad_p.append(bad)
         keep_p.append(p)
+    empty = np.zeros((0, len(eeg_names), len(erp.epoch_times(SFREQ_OUT))))
     if not eeg_p:
-        return np.zeros((0, len(eeg_names), len(erp.epoch_times(SFREQ_OUT))))
+        return (empty, empty) if without_adaptive_filter else empty
     amp = np.array([float(np.median(e[~b].std(axis=1))) for e, b in zip(eeg_p, bad_p)])
     ok = amp <= outlier_factor * float(np.median(amp))
     cols = []
@@ -194,27 +200,32 @@ def process_file(
             y[b] = np.nan
             cols.append(y)
     cat = np.concatenate(cols, axis=1)
-    med = np.nanmedian(cat, axis=1)
-    scale = 1.4826 * np.nanmedian(np.abs(cat - med[:, None]), axis=1) + np.finfo(float).eps
+    with warnings.catch_warnings():  # channels bad in every piece are all NaN
+        warnings.simplefilter("ignore", RuntimeWarning)
+        med = np.nanmedian(cat, axis=1)
+        scale = 1.4826 * np.nanmedian(np.abs(cat - med[:, None]), axis=1) + np.finfo(float).eps
     med = np.where(np.isfinite(med), med, 0.0)
     scale = np.where(np.isfinite(scale), scale, 1.0)
     del cat, cols
     m_all = np.concatenate([m for m, o in zip(ref_p, ok) if o], axis=1)
     m_mean, m_sd = m_all.mean(axis=1), m_all.std(axis=1, ddof=1) + np.finfo(float).eps
     w = initial_weights(len(pos), len(eeg_names), seed)
-    out = []
+    out, out_raw = [], []
     for e, m, b, p, o in zip(eeg_p, ref_p, bad_p, keep_p, ok):
         if not o:
             continue
-        d, w = nlms((e - med[:, None]) / scale[:, None], (m - m_mean[:, None]) / m_sd[:, None], mu, eps, w)
+        z = (e - med[:, None]) / scale[:, None]
+        d, w = nlms(z, (m - m_mean[:, None]) / m_sd[:, None], mu, eps, w)
         onsets = [t - p.start for t in erp.select_onsets(list(p.events), p.start, min_sil)
                   if not erp.overlaps(t + erp.EPOCH_SEC[0], t + erp.EPOCH_SEC[1], spans)]  # fmt: skip
         ep = erp.epochs(d, onsets, SFREQ_OUT, baseline_ms=baseline, bad=b)
         if len(ep):
             out.append(ep)
+            if without_adaptive_filter:
+                out_raw.append(erp.epochs(z, onsets, SFREQ_OUT, baseline_ms=baseline, bad=b))
     if not out:
-        return np.zeros((0, len(eeg_names), len(erp.epoch_times(SFREQ_OUT))))
-    return np.concatenate(out)
+        return (empty, empty) if without_adaptive_filter else empty
+    return (np.concatenate(out), np.concatenate(out_raw)) if without_adaptive_filter else np.concatenate(out)
 
 
 def files_of(root: str | Path, cond: Condition) -> list[Path]:

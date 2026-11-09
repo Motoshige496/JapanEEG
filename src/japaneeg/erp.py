@@ -206,7 +206,9 @@ def gfp_peaks(
     """
     g = gfp(erp)
     t = np.asarray(times_ms, np.float64)
-    idx = [i for i in range(1, len(g) - 1) if window_ms[0] <= t[i] <= window_ms[1] and g[i] >= g[i - 1] and g[i] > g[i + 1]]
+    idx = [
+        i for i in range(1, len(g) - 1) if window_ms[0] <= t[i] <= window_ms[1] and g[i] >= g[i - 1] and g[i] > g[i + 1]
+    ]
     best: list[int] = []
     for i in sorted(idx, key=lambda i: g[i], reverse=True):
         if all(abs(t[i] - t[j]) >= min_sep_ms for j in best):
@@ -237,6 +239,7 @@ def baseline_ratio(
     base = (t >= baseline_ms[0]) & (t < baseline_ms[1])
     post = (t >= post_ms[0]) & (t < post_ms[1])
     x = np.asarray(erp, np.float64)
+    x = x[np.isfinite(x).any(axis=1)]  # channels never good
     base_sd = float(np.nanmean(np.nanstd(x[:, base], axis=1)))
     post_rms = float(np.nanmean(np.sqrt(np.nanmean(x[:, post] ** 2, axis=1))))
     return post_rms / base_sd
@@ -273,7 +276,8 @@ def split_half_reliability(
     n = x.shape[0]
     for _ in range(n_splits):
         perm = rng.permutation(n)
-        with np.errstate(invalid="ignore"):
+        with warnings.catch_warnings():  # channels bad in all runs of one half
+            warnings.simplefilter("ignore", RuntimeWarning)
             a = np.nanmean(x[perm[: n // 2]][:, :, mask], axis=0)
             b = np.nanmean(x[perm[n // 2 :]][:, :, mask], axis=0)
         ok = np.isfinite(a) & np.isfinite(b)

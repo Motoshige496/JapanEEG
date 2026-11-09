@@ -6,7 +6,6 @@
   "trial_type": "covert",
   "n_runs": 199,
   "n_trials": 18804,
-  "n_rejected": null,
   "epoch_ms": [
     -300,
     800

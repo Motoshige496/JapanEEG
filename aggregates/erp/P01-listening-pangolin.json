@@ -6,7 +6,6 @@
   "trial_type": "listening",
   "n_runs": 19,
   "n_trials": 4564,
-  "n_rejected": null,
   "epoch_ms": [
     -300,
     800

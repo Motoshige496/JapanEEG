@@ -11,7 +11,7 @@
 * ``head_radius`` and ``nasion_dist`` (m, ``"lateral"`` only): outline of the lateral head.
 
 ``aggregates/erp/<condition>.json``: participant, device, task, trial type, run and trial counts,
-baseline, rejection and the processing settings.
+baseline and the processing settings.
 
 ``aggregates/psd/<condition>_<kind>.npz`` (``kind`` = ``raw`` or ``preprocessed``): ``freqs``
 (Hz), ``median`` and ``mad`` ``(n_ch, n_freqs)`` of the linear PSD over runs (raw: µV²/Hz;
@@ -158,7 +158,9 @@ def load_psd(path: str | Path) -> PsdAggregate:
     path = Path(path)
     z = np.load(path, allow_pickle=False)
     name, _, kind = path.stem.rpartition("_")
-    return PsdAggregate(name, kind, np.asarray(z["freqs"]), np.asarray(z["median"]), np.asarray(z["mad"]), int(z["n_runs"]))
+    return PsdAggregate(
+        name, kind, np.asarray(z["freqs"]), np.asarray(z["median"]), np.asarray(z["mad"]), int(z["n_runs"])
+    )
 
 
 def load_all(root: str | Path) -> tuple[dict[str, ErpAggregate], dict[tuple[str, str], PsdAggregate]]:

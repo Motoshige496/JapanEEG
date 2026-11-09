@@ -19,7 +19,9 @@ HF_BAND = (60.0, 118.0)
 HF_EXCLUDE = ((97.0, 103.0),)
 
 
-def welch(data: NDArray[np.floating], sfreq: float, window_sec: float = 4.0) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+def welch(
+    data: NDArray[np.floating], sfreq: float, window_sec: float = 4.0
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """Welch PSD per channel (Hann window, 50% overlap).
 
     Args:
@@ -35,7 +37,9 @@ def welch(data: NDArray[np.floating], sfreq: float, window_sec: float = 4.0) -> 
     nperseg = int(round(window_sec * sfreq))
     if data.shape[1] < nperseg:
         raise ValueError("segment shorter than one window")
-    f, p = _welch(np.asarray(data, np.float64), fs=sfreq, window="hann", nperseg=nperseg, noverlap=nperseg // 2, axis=-1)
+    f, p = _welch(
+        np.asarray(data, np.float64), fs=sfreq, window="hann", nperseg=nperseg, noverlap=nperseg // 2, axis=-1
+    )
     return f, p
 
 
@@ -54,7 +58,9 @@ def run_median(per_run: NDArray[np.floating]) -> tuple[NDArray[np.float64], NDAr
     return med, mad
 
 
-def median_curve_db(median: NDArray[np.floating], mad: NDArray[np.floating], n_runs: int) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+def median_curve_db(
+    median: NDArray[np.floating], mad: NDArray[np.floating], n_runs: int
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """Channel average of the median PSD in dB and of its approximate standard error.
 
     Args:

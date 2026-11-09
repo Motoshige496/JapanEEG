@@ -13,7 +13,7 @@ def test_robust_zscore_ignores_rare_artifacts() -> None:
     x = rng.normal(0, 2.0, (2, 20000))
     x[0, :20] = 1e4  # rare large artifact
     z = robust_zscore(x)
-    assert abs(float(np.median(z[0, 100:])) ) < 0.05
+    assert abs(float(np.median(z[0, 100:]))) < 0.05
     assert 0.9 < float(np.std(z[1])) < 1.1
     assert float(np.std(zscore(x)[0, 100:])) < 0.2  # the plain z-score is shrunk by the artifact
 
@@ -86,7 +86,7 @@ def test_split_half_reliability_high_for_consistent_runs() -> None:
 
 def test_hf_slope_of_power_law() -> None:
     f = np.linspace(1, 120, 500)
-    p = np.vstack([f ** -2.0, f ** 1.0])  # -20 and +10 dB per decade
+    p = np.vstack([f**-2.0, f**1.0])  # -20 and +10 dB per decade
     s = psd.hf_slope(f, p)
     assert np.allclose(s, [-20.0, 10.0], atol=1e-6)
 

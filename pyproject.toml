@@ -15,6 +15,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+speech = ["pyopenjtalk>=0.3"]
 
 [project.scripts]
 japaneeg-download = "japaneeg.download:main"

@@ -6,7 +6,6 @@
   "trial_type": "overt",
   "n_runs": 172,
   "n_trials": 60632,
-  "n_rejected": null,
   "epoch_ms": [
     -300,
     800

@@ -74,8 +74,10 @@ def _synthetic_aggregates(root: Path) -> None:
             {"n_runs": 10, "n_trials": 1000}))  # fmt: skip
         f = np.linspace(0, 120, 481)
         for kind in ("raw", "preprocessed"):
-            save_psd(root / "psd" / f"{name}_{kind}.npz",
-                     PsdAggregate(name, kind, f, np.abs(rng.normal(1, 0.1, (n, len(f)))), np.full((n, len(f)), 0.1), 10))
+            save_psd(
+                root / "psd" / f"{name}_{kind}.npz",
+                PsdAggregate(name, kind, f, np.abs(rng.normal(1, 0.1, (n, len(f)))), np.full((n, len(f)), 0.1), 10),
+            )
 
 
 def test_figures_from_synthetic_aggregates(tmp_path: Path) -> None:

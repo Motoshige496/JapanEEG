@@ -109,7 +109,31 @@ def scalp_eeg(channels: list[dict[str, str]]) -> list[str]:
     Returns:
         Channel names in file order.
     """
-    return [c["name"] for c in channels if c.get("type") == "EEG" and c["name"] not in REFERENCE_SITES]
+    return [c["name"] for c in channels if c.get("type") == "EEG" and c["name"] not in REFERENCE_SITES
+            and not is_audio(c)]  # fmt: skip
+
+
+def is_audio(channel: dict[str, str]) -> bool:
+    """Whether a ``channels.tsv`` row is a microphone or PC-audio channel (by type or description)."""
+    desc = (channel.get("description") or "").lower()
+    return channel.get("type") in ("MIC", "AUDIO") or desc.startswith(("microphone", "pc audio"))
+
+
+def microphone_channels(channels: list[dict[str, str]]) -> list[str]:
+    """Names of the microphone channels in file order.
+
+    In the release, the first is the 30-Hz amplitude envelope of the microphone signal and the
+    second the voice-masked speech on the EEG time line (zero where no masked audio exists);
+    their ``description`` in ``channels.tsv`` says which is which.
+
+    Args:
+        channels: Rows of ``channels.tsv``.
+
+    Returns:
+        Channel names.
+    """
+    return [c["name"] for c in channels
+            if c.get("type") == "MIC" or (c.get("description") or "").lower().startswith("microphone")]  # fmt: skip
 
 
 def load_raw(edf: str | Path, preload: bool = False, annotate: bool = True):  # noqa: ANN201 (mne.io.Raw)
