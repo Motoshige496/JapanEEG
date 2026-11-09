@@ -70,15 +70,22 @@ def cmd_tables(args: argparse.Namespace) -> None:
     t4, t5 = tables.table4(rows, hours, dates), tables.table5(rows)
     write_tsv(args.out / "table4.tsv", t4)
     write_tsv(args.out / "table5.tsv", t5)
-    for r in t4 + t5:
-        print("\t".join(r.values()))
+    for t in (t4, t5):
+        if t:
+            print("\t".join(t[0]))
+            for r in t:
+                print("\t".join(v or "-" for v in r.values()))
+            print()
     print(f"total recording hours: {sum(hours.values()):.1f}")
+    print("days_continuous and period_continuous count the sessions released as continuous runs only")
 
 
 def cmd_articulation(args: argparse.Namespace) -> None:
     """Articulation rate per participant."""
     files = sorted(Path(args.bids_root).rglob("*task-speechopen*_events.tsv"))
     rows: list[dict[str, str]] = []
+    if args.morae:
+        speech.count_morae("あ")  # pyopenjtalk downloads its dictionary once here, not in every worker
     with Pool(args.n_workers) as pool:
         for part in pool.imap_unordered(partial(speech.utterance_rates, morae=args.morae), files, chunksize=4):
             rows.extend(part)
