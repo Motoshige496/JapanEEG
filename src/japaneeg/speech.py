@@ -6,8 +6,12 @@
   (``alignment_flag``) or without phones are skipped. Optionally the words of the utterance
   are read as katakana with pyopenjtalk and their morae counted (contracted small kana do not
   count; the sokuon does); utterances with an unknown-word phone (``spn``) get no mora rate.
-* :func:`onset_latency`: latency of the sound relative to a speech-event onset, measured on the
-  microphone envelope channel recorded by the amplifier (EEG clock).
+* :func:`sound_envelope` and :func:`onset_latency`: latency of the sound relative to a
+  speech-event onset on the EEG time line. The paper band-passed the amplifier's microphone
+  signal (60-2000 Hz, capped at 0.45 x the sampling rate), rectified it and smoothed it over
+  10 ms; the onset is the first time the envelope stays above the baseline mean + 5 SD for
+  20 ms. The release has no original microphone signal, so the same steps are applied to the
+  voice-masked speech channel (the second microphone channel of the EDF).
 """
 
 from __future__ import annotations
@@ -120,6 +124,28 @@ def utterance_rates(events_tsv: str | Path, morae: bool = False) -> list[dict[st
     return out
 
 
+def sound_envelope(
+    x: NDArray[np.floating], sfreq: float, band: tuple[float, float] = (60.0, 2000.0), smooth_ms: float = 10.0
+) -> NDArray[np.float64]:
+    """Band-pass (zero phase), rectify and smooth with a centred moving average.
+
+    Args:
+        x: Sound signal (one channel).
+        sfreq: Sampling rate (Hz).
+        band: Pass band (Hz); the upper edge is capped at 0.45 x ``sfreq``.
+        smooth_ms: Length of the moving average (ms).
+
+    Returns:
+        Envelope of the same length.
+    """
+    from scipy.signal import butter, sosfiltfilt
+
+    sos = butter(4, [band[0], min(band[1], 0.45 * sfreq)], btype="bandpass", fs=sfreq, output="sos")
+    y = np.abs(sosfiltfilt(sos, np.asarray(x, np.float64)))
+    w = max(1, int(round(smooth_ms * sfreq / 1000)))
+    return np.convolve(y, np.ones(w) / w, mode="same")
+
+
 def onset_latency(
     envelope: NDArray[np.floating],
     sfreq: float,
@@ -139,7 +165,7 @@ def onset_latency(
         baseline: Baseline window relative to the onset (s).
         search_from: Start of the search relative to the onset (s).
         search_to: End of the search relative to the onset (s).
-        k_sd: Threshold in baseline SDs above the baseline mean.
+        k_sd: Threshold in baseline SDs above the baseline mean (SD at least 0.1% of the window maximum).
         hold: Time the envelope must stay above the threshold (s).
 
     Returns:
@@ -151,7 +177,8 @@ def onset_latency(
         return float("nan")
     x = np.asarray(envelope[a:b], np.float64)
     nb = int(round((baseline[1] - baseline[0]) * sfreq))
-    thr = x[:nb].mean() + k_sd * x[:nb].std()
+    sd = max(float(x[:nb].std()), 1e-3 * float(np.max(np.abs(x))))  # floor: digital silence has SD 0
+    thr = x[:nb].mean() + k_sd * sd
     above = x > thr
     n_hold = max(1, int(round(hold * sfreq)))
     start = int(round((search_from - baseline[0]) * sfreq))

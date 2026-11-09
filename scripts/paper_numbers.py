@@ -5,8 +5,8 @@ Subcommands (each writes a TSV to ``--out`` and prints a summary):
 ``tables``        Tables 4 and 5: events, event hours, recording hours, duration statistics.
 ``articulation``  articulation rate per participant from the released phone intervals
                   (``--morae`` adds morae per second; needs ``pip install pyopenjtalk``).
-``onset``         latency of the sound after the speech-event onset on the microphone envelope
-                  channel (overt speech after >= 0.5 s of silence).
+``onset``         latency of the sound after the speech-event onset (overt speech after >= 0.5 s
+                  of silence), on the voice-masked speech channel with the envelope of the paper.
 ``speech-pause``  60-118 Hz slopes during speech and pauses with the recording reference and the
                   common average reference, per file; Wilcoxon signed-rank test speech vs pause.
 ``coherence``     EEG-EMG coherence (60-118 Hz) with the recording reference and the common
@@ -17,10 +17,11 @@ Subcommands (each writes a TSV to ``--out`` and prints a summary):
 Exact or approximate: Tables 4-5, the articulation rate and the share of events overlapping
 ``BAD_high_amplitude`` use only the released events and EDF headers and reproduce the paper's
 values. The bad-channel counts cover the runs released as continuous runs (the segments of a
-``ses-shuffled`` file carry the flags of their source run, but not the run). The paper computed the onset latency on the original
-microphone signal and the slopes and coherence on the original runs; here the released
-microphone envelope and the released pieces are used (a continuous run as one piece, the
-segments of a ``ses-shuffled`` file pooled per file), so these values are close but not identical.
+``ses-shuffled`` file carry the flags of their source run, but not the run). The paper computed
+the onset latency on the original microphone signal and the slopes and coherence on the original
+runs. Here the voice-masked speech channel and the released pieces are used (a continuous run as
+one piece, the segments of a ``ses-shuffled`` file pooled per file), so these values are close
+but not identical.
 
 Usage
 -----
@@ -108,17 +109,20 @@ def _onsets(edf: str, min_silence: float) -> list[float]:
     mic = bids.microphone_channels(channels)
     if not mic:
         return []
+    channel = mic[1] if len(mic) > 1 else mic[0]  # voice-masked speech; else the released envelope
     raw = bids.load_raw(path, annotate=False)
     sf = float(raw.info["sfreq"])
     out: list[float] = []
-    pieces = emg.pieces(path)
-    for p in pieces:
+    for p in emg.pieces(path):
         evs = [erp.Event(a, b - a) for a, b in emg.spans_of(p.rows, ("overt",))]
         for on in erp.select_onsets(evs, p.start, min_silence):
-            a, b = int((on - 0.6) * sf), int((on + 0.5) * sf)
-            if a < int(p.start * sf) or b > int(p.stop * sf):
+            if on - 0.5 < p.start or on + 0.5 > p.stop:
                 continue
-            env = raw.get_data(picks=mic[:1], start=a, stop=b)[0]
+            a = int(max(p.start, on - 1.0) * sf)  # extra signal before the baseline for the filter
+            x = raw.get_data(picks=[channel], start=a, stop=int((on + 0.5) * sf))[0]
+            if not np.any(x):
+                continue  # no voice-masked audio here
+            env = speech.sound_envelope(x, sf) if len(mic) > 1 else x
             lat = speech.onset_latency(env, sf, on - a / sf)
             if np.isfinite(lat):
                 out.append(1000.0 * lat)

@@ -185,7 +185,7 @@ scalp EEG channels and the facial EMG on one time line. Use a continuous overt-s
 | ERPs with and without the adaptive filter (correlation, RMS change) | `scripts/reproduce_from_release.py --without-adaptive-filter`, then `scripts/release_statistics.py` | approximate |
 | Tables 4 and 5: events, event hours, recording hours, duration statistics | `scripts/paper_numbers.py tables` | event counts and durations exact; recording days from the continuous runs only |
 | Articulation rate in morae and phones per second | `scripts/paper_numbers.py articulation --morae` | exact |
-| Acoustic onset after the speech-event onset | `scripts/paper_numbers.py onset` | approximate (released 30-Hz microphone envelope) |
+| Acoustic onset after the speech-event onset | `scripts/paper_numbers.py onset` | approximate (voice-masked speech instead of the original microphone signal) |
 | Slopes during speech and pauses, Wilcoxon signed-rank test, recording reference vs CAR | `scripts/paper_numbers.py speech-pause --subject 01` | approximate (per file) |
 | EEG–EMG coherence with the recording reference and CAR, chance level | `scripts/paper_numbers.py coherence --subject 01` | approximate (per file) |
 | Bad channels per run, events overlapping `BAD_high_amplitude` | `scripts/paper_numbers.py bad-channels` | overlap exact; bad channels of the continuous runs only |
