@@ -1,0 +1,21 @@
+{
+  "condition": "P01-covert-pangolin",
+  "participant": "P01",
+  "device": "pangolin",
+  "task": "listeningcovert",
+  "trial_type": "covert",
+  "n_runs": 199,
+  "n_trials": 18804,
+  "n_rejected": null,
+  "epoch_ms": [
+    -300,
+    800
+  ],
+  "baseline_ms": [
+    -200.0,
+    0.0
+  ],
+  "units": "SD of single epochs",
+  "processing": "notch 50 Hz harmonics, band-pass 2-120 Hz, resampled to 240 Hz; good-channel common average reference; robust run standardisation (median, 1.4826 MAD); NLMS (mu 0.1, eps 0.001, weights N(0, 0.5), seed 0); trials overlapping BAD_high_amplitude excluded; rejection above 3 x median of the per-trial maximum; each epoch divided by its SD; mean over the trials of each run, then over runs in which the channel was good",
+  "onsets": "speech events after >= 0.5 s of silence (overt, listening); covert trial onsets"
+}
