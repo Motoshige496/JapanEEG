@@ -5,7 +5,7 @@
   "task": "speechopen",
   "trial_type": "overt",
   "n_runs": 137,
-  "n_trials": 30627,
+  "n_trials": 30593,
   "epoch_ms": [
     -300,
     800
