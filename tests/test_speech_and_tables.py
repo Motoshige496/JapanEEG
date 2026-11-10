@@ -5,7 +5,6 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
-import numpy as np
 
 from japaneeg import emg, speech, tables
 
@@ -35,16 +34,6 @@ def test_utterance_rates_counts_phones_inside_events(tmp_path: Path) -> None:
     assert len(out) == 1
     assert out[0]["participant"] == "P07" and out[0]["n_phones"] == "8"
     assert abs(float(out[0]["rate"]) - 10.0) < 1e-6
-
-
-def test_onset_latency_finds_step() -> None:
-    sf = 1000.0
-    rng = np.random.default_rng(0)
-    env = rng.normal(0.0, 0.01, 2000)
-    env[1040:] += 1.0  # sound 40 ms after the onset at 1.0 s
-    lat = speech.onset_latency(env, sf, 1.0)
-    assert abs(lat - 0.040) < 0.002
-    assert np.isnan(speech.onset_latency(rng.normal(0.0, 0.01, 2000), sf, 1.0))
 
 
 def test_subtract_and_speech_pause_intervals() -> None:

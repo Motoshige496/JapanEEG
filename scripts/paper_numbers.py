@@ -5,8 +5,6 @@ Subcommands (each writes a TSV to ``--out`` and prints a summary):
 ``tables``        Tables 4 and 5: events, event hours, recording hours, duration statistics.
 ``articulation``  articulation rate per participant from the released phone intervals
                   (``--morae`` adds morae per second; needs ``pip install pyopenjtalk``).
-``onset``         latency of the sound after the speech-event onset (overt speech after >= 0.5 s
-                  of silence), on the voice-masked speech channel with the envelope of the paper.
 ``speech-pause``  60-118 Hz slopes during speech and pauses with the recording reference and the
                   common average reference, per file; Wilcoxon signed-rank test speech vs pause.
 ``coherence``     EEG-EMG coherence (60-118 Hz) with the recording reference and the common
@@ -18,16 +16,16 @@ Exact or approximate: Tables 4-5, the articulation rate and the share of events 
 ``BAD_high_amplitude`` use only the released events and EDF headers and reproduce the paper's
 values. The bad-channel counts cover the runs released as continuous runs (the segments of a
 ``ses-shuffled`` file carry the flags of their source run, but not the run). The paper computed
-the onset latency on the original microphone signal and the slopes and coherence on the original
-runs. Here the voice-masked speech channel and the released pieces are used (a continuous run as
-one piece, the segments of a ``ses-shuffled`` file pooled per file), so these values are close
-but not identical.
+the slopes and coherence on the original runs. Here the released pieces are used (a continuous
+run as one piece, the segments of a ``ses-shuffled`` file pooled per file), so these values are
+close but not identical. The acoustic onset latency of the paper (about 40 ms after the
+speech-event onset) was measured on the original microphone signal, which is not released, and
+cannot be computed from the release.
 
 Usage
 -----
 uv run python scripts/paper_numbers.py tables --bids-root data/JapanEEG/bids
 uv run python scripts/paper_numbers.py articulation --bids-root data/JapanEEG/bids --morae
-uv run python scripts/paper_numbers.py onset --bids-root data/JapanEEG/bids --subject 01 --acq pangolin
 uv run python scripts/paper_numbers.py speech-pause --bids-root data/JapanEEG/bids --subject 02
 uv run python scripts/paper_numbers.py coherence --bids-root data/JapanEEG/bids --subject 02
 uv run python scripts/paper_numbers.py bad-channels --bids-root data/JapanEEG/bids
@@ -100,44 +98,6 @@ def cmd_articulation(args: argparse.Namespace) -> None:
         if args.morae and sub:
             line += f", morae/s {median_iqr([float(r['mora_rate']) for r in sub])}"
         print(line)
-
-
-def _onsets(edf: str, min_silence: float) -> list[float]:
-    """Acoustic onset latencies (ms) of the selected overt events of one file (worker)."""
-    path = Path(edf)
-    channels = bids.read_tsv(bids.sidecar(path, "channels.tsv"))
-    mic = bids.microphone_channels(channels)
-    if not mic:
-        return []
-    channel = mic[1] if len(mic) > 1 else mic[0]  # voice-masked speech; else the released envelope
-    raw = bids.load_raw(path, annotate=False)
-    sf = float(raw.info["sfreq"])
-    out: list[float] = []
-    for p in emg.pieces(path):
-        evs = [erp.Event(a, b - a) for a, b in emg.spans_of(p.rows, ("overt",))]
-        for on in erp.select_onsets(evs, p.start, min_silence):
-            if on - 0.5 < p.start or on + 0.5 > p.stop:
-                continue
-            a = int(max(p.start, on - 1.0) * sf)  # extra signal before the baseline for the filter
-            x = raw.get_data(picks=[channel], start=a, stop=int((on + 0.5) * sf))[0]
-            if not np.any(x):
-                continue  # no voice-masked audio here
-            env = speech.sound_envelope(x, sf) if len(mic) > 1 else x
-            lat = speech.onset_latency(env, sf, on - a / sf)
-            if np.isfinite(lat):
-                out.append(1000.0 * lat)
-    return out
-
-
-def cmd_onset(args: argparse.Namespace) -> None:
-    """Acoustic onset after the speech-event onset."""
-    files = [str(f) for f in bids.find_runs(args.bids_root, args.subject, "speechopen", args.acq)]
-    lat: list[float] = []
-    with Pool(args.n_workers) as pool:
-        for part in pool.imap_unordered(partial(_onsets, min_silence=0.5), files):
-            lat.extend(part)
-    write_tsv(args.out / "acoustic_onsets.tsv", [{"latency_ms": f"{v:.1f}"} for v in lat])
-    print(f"{len(lat)} utterances, acoustic onset after the event onset: median (IQR) {median_iqr(lat)} ms")
 
 
 def _speech_pause(edf: str) -> dict[str, str] | None:
@@ -223,7 +183,7 @@ def cmd_bad_channels(args: argparse.Namespace) -> None:
 def main() -> None:
     """Parse the subcommand and run it."""
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("command", choices=["tables", "articulation", "onset", "speech-pause", "coherence", "bad-channels"])
+    ap.add_argument("command", choices=["tables", "articulation", "speech-pause", "coherence", "bad-channels"])
     ap.add_argument("--bids-root", required=True)
     ap.add_argument("--out", type=Path, default=Path("outputs/paper_numbers"))
     ap.add_argument("--subject", default="01")
@@ -232,7 +192,7 @@ def main() -> None:
     ap.add_argument("--n-workers", type=int, default=-1, help="-1: all CPUs but one")
     args = ap.parse_args()
     args.n_workers = max(1, (os.cpu_count() or 2) - 1) if args.n_workers < 0 else args.n_workers
-    {"tables": cmd_tables, "articulation": cmd_articulation, "onset": cmd_onset,
+    {"tables": cmd_tables, "articulation": cmd_articulation,
      "speech-pause": cmd_speech_pause, "coherence": cmd_coherence, "bad-channels": cmd_bad_channels}[args.command](args)  # fmt: skip
 
 

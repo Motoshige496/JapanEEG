@@ -129,7 +129,7 @@ Notes on the release (details in the dataset README):
 | `japaneeg.psd` | Welch PSD (4-s Hann, 50 % overlap), median over runs and its standard error in dB, 60–118 Hz slope without 97–103 Hz |
 | `japaneeg.pipeline` | the ERP pipeline applied to released files, with and without the adaptive filter |
 | `japaneeg.emg` | 60–118 Hz slopes during speech and pauses, EEG–EMG coherence, each with the recording reference and the common average reference (CAR) |
-| `japaneeg.speech` | articulation rate from the released word and phone intervals (morae and phones per second), acoustic onset latency on the microphone envelope channel |
+| `japaneeg.speech` | articulation rate from the released word and phone intervals (morae and phones per second) |
 | `japaneeg.tables` | event counts, event hours and recording hours of Tables 4 and 5 |
 
 ## Reproducing the figures
@@ -185,7 +185,6 @@ scalp EEG channels and the facial EMG on one time line. Use a continuous overt-s
 | ERPs with and without the adaptive filter (correlation, RMS change) | `scripts/reproduce_from_release.py --without-adaptive-filter`, then `scripts/release_statistics.py` | approximate |
 | Tables 4 and 5: events, event hours, recording hours, duration statistics | `scripts/paper_numbers.py tables` | event counts and durations exact; recording days from the continuous runs only |
 | Articulation rate in morae and phones per second | `scripts/paper_numbers.py articulation --morae` | exact |
-| Acoustic onset after the speech-event onset | `scripts/paper_numbers.py onset` | approximate (voice-masked speech instead of the original microphone signal) |
 | Slopes during speech and pauses, Wilcoxon signed-rank test, recording reference vs CAR | `scripts/paper_numbers.py speech-pause --subject 01` | approximate (per file) |
 | EEG–EMG coherence with the recording reference and CAR, chance level | `scripts/paper_numbers.py coherence --subject 01` | approximate (per file) |
 | Bad channels per run, events overlapping `BAD_high_amplitude` | `scripts/paper_numbers.py bad-channels` | overlap exact; bad channels of the continuous runs only |
@@ -194,7 +193,11 @@ All commands except `redraw_figures.py` and `release_statistics.py` take
 `--bids-root data/JapanEEG/bids`, and all write TSV files under `outputs/`. The paper computed the
 speech and pause slopes and the coherence per run. The run of a `ses-shuffled` segment is not
 released, so the segments of one file are pooled, and the counts of the test differ from the
-paper. The speech measures use the released word and phone intervals, which come from forced
+paper. The acoustic onset about 40 ms after the speech-event onset was measured on the original
+microphone signal, which is not released, so it cannot be computed from the release. The
+microphone channels of the release hold the 30 Hz amplitude envelope of that signal and the
+voice-masked speech, which is kept only within the speech events. The speech measures use the
+released word and phone intervals, which come from forced
 alignment of the original audio.
 
 ## Tests

@@ -124,9 +124,6 @@ def test_paper_numbers(bids_root: Path, tmp_path: Path) -> None:
     assert "overt" in out
     out = run("scripts/paper_numbers.py", "articulation", *common)
     assert "phones/s 10.00" in out
-    out = run("scripts/paper_numbers.py", "onset", *common)
-    # true onset 40 ms; the zero-phase filter and the centred smoothing detect it a little earlier
-    assert 15.0 <= float(out.split("median (IQR) ")[1].split()[0]) <= 55.0, out
     out = run("scripts/paper_numbers.py", "speech-pause", *common)
     assert "recording:" in out and "car:" in out
     out = run("scripts/paper_numbers.py", "coherence", *common)
