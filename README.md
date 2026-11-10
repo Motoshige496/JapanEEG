@@ -192,8 +192,10 @@ scalp EEG channels and the facial EMG on one time line. Use a continuous overt-s
 All commands except `redraw_figures.py` and `release_statistics.py` take
 `--bids-root data/JapanEEG/bids`, and all write TSV files under `outputs/`. The paper computed the
 speech and pause slopes and the coherence per run. The run of a `ses-shuffled` segment is not
-released, so the segments of one file are pooled, and the counts of the test differ from the
-paper. The acoustic onset about 40 ms after the speech-event onset was measured on the original
+released, so the segments of one file are pooled, and the counts of the test and the medians
+differ from the paper. The difference between speech and pauses and the effect of the common
+average reference are reproduced for every participant. The median slope during speech of P01,
+which is close to zero in the paper, can come out with the other sign. The acoustic onset about 40 ms after the speech-event onset was measured on the original
 microphone signal, which is not released, so it cannot be computed from the release. The
 microphone channels of the release hold the 30 Hz amplitude envelope of that signal and the
 voice-masked speech, which is kept only within the speech events. The speech measures use the
