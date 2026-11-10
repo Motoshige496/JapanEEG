@@ -44,6 +44,10 @@ def test_subtract_and_speech_pause_intervals() -> None:
     assert iv["speech"] == [(0.0, 1.0), (4.0, 5.0), (5.5, 6.5)]
     # gap 1-4 s is split by the cough into 1-2 and 2.2-4; the 0.5 s gap 5-5.5 is too short
     assert [(round(a, 2), round(b, 2)) for a, b in iv["pause"]] == [(1.3, 1.7), (2.5, 3.7)]
+    # a segment of a shuffled file: the stretches before the first and after the last event count
+    seg = emg.speech_pause_intervals([ev(12.0, 1.0, "overt")], min_pause=1.0, trim=0.3, edges=(10.0, 15.0))
+    assert [(round(a, 2), round(b, 2)) for a, b in seg["pause"]] == [(10.3, 11.7), (13.3, 14.7)]
+    assert emg.speech_pause_intervals([], min_pause=1.0, trim=0.3, edges=(0.0, 4.0))["pause"] == [(0.3, 3.7)]
 
 
 def test_event_intervals_merge_and_drop_marks() -> None:

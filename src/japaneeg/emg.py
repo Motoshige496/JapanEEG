@@ -15,7 +15,9 @@ high-pass, and 97-103 Hz around the line harmonic is left out).
   the EMG of the previous window (circularly).
 
 A continuous run is one piece. In a ``ses-shuffled`` file, every segment is a piece, and the
-pieces of the file are pooled (the run of a segment is not released).
+pieces of the file are pooled (the run of a segment is not released). Speech and non-speech
+segments cut the runs between utterances, so in a segment the stretches before the first and
+after the last speech event also count as pauses (:func:`speech_pause_intervals`).
 """
 
 from __future__ import annotations
@@ -80,20 +82,28 @@ def subtract(spans: list[tuple[float, float]], cut: list[tuple[float, float]]) -
 
 
 def speech_pause_intervals(rows: list[dict[str, str]] | tuple[dict[str, str], ...], min_pause: float = 1.5,
-                           trim: float = 0.3) -> dict[str, list[tuple[float, float]]]:  # fmt: skip
+                           trim: float = 0.3, edges: tuple[float, float] | None = None
+                           ) -> dict[str, list[tuple[float, float]]]:  # fmt: skip
     """Speech and pause intervals of one piece.
+
+    Pauses lie between consecutive speech events. With edges (a segment of a ses-shuffled
+    file), the time from the start of the segment to its first speech event and from its last
+    speech event to its end also counts, and a segment without speech events is one pause: the
+    segments cut the runs between utterances, so these stretches are parts of pauses of the run.
 
     Args:
         rows: Event rows of the piece.
         min_pause: Shortest pause (s) after removing the excluded events.
         trim: Seconds removed at both ends of every pause.
+        edges: Start and end of the segment (s), or None for a continuous run.
 
     Returns:
         ``{"speech": [...], "pause": [...]}``.
     """
     overt = spans_of(rows, ("overt",))
     marks = spans_of(rows, MARKS)
-    gaps = [(a[1], b[0]) for a, b in zip(overt, overt[1:])]
+    bounds = [(edges[0], edges[0]), *overt, (edges[1], edges[1])] if edges else overt
+    gaps = [(a[1], b[0]) for a, b in zip(bounds, bounds[1:]) if b[0] > a[1]]
     gaps = subtract(subtract(gaps, spans_of(rows, PAUSE_EXCLUDE)), marks)
     return {"speech": subtract(overt, marks), "pause": [(a + trim, b - trim) for a, b in gaps if b - a >= min_pause]}
 
@@ -174,7 +184,8 @@ def speech_pause_power(edf: Path, win_sec: float = 0.5, min_pause: float = 1.5,
         idx = [names.index(c) for c in p.eeg]
         if len(idx) < 2:
             continue
-        for cls, spans in speech_pause_intervals(rows, min_pause, trim).items():
+        edges = (p.start, p.stop) if "_ses-shuffled_" in edf.name else None
+        for cls, spans in speech_pause_intervals(rows, min_pause, trim, edges).items():
             for a, b in spans:
                 a, b = max(a, p.start), min(b, p.stop)
                 if b - a < win_sec:
