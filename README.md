@@ -44,5 +44,22 @@ Recomputing the ERP figures from the released BIDS files gives approximate resul
 
 ## Citation and license
 
-Please cite the Data Descriptor and the [dataset DOI](https://doi.org/10.7910/DVN/5RM3OT).
+Please cite the [JapanEEG Data Descriptor](https://arxiv.org/abs/2606.01264) when referencing this work.
+
+```bibtex
+@misc{sato2026japaneeg,
+  title         = {A 1000-hour {EEG-EMG}-audio dataset of Japanese speech production},
+  author        = {Sato, Motoshige and Horiguchi, Ilya and Inoue, Masakazu and
+                   Tomeoka, Kenichi and Hatakeyama, Eri and Kita, Yuya and
+                   Yamamoto, Atsushi and Fujisawa, Ippei and Sasai, Shuntaro},
+  year          = {2026},
+  eprint        = {2606.01264},
+  archivePrefix = {arXiv},
+  primaryClass  = {q-bio.NC},
+  url           = {https://arxiv.org/abs/2606.01264}
+}
+```
+
+If you use the data, please also cite the [JapanEEG dataset on Harvard Dataverse](https://doi.org/10.7910/DVN/5RM3OT).
+
 The code uses the [MIT License](LICENSE). For the data, see the terms on Harvard Dataverse.
